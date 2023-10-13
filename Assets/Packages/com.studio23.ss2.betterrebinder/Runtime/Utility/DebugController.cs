@@ -8,6 +8,11 @@
 			Debug.Log($"{message}");
 		}
 
+		public static void DebugColored(string message, string hex)
+		{
+			Debug.Log($"<color={hex}>{message}</color>");
+		}
+
 		public static void DebugWarning(string message)
 		{
 			Debug.LogWarning($"{message}");
