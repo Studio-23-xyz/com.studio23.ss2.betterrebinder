@@ -9,25 +9,47 @@ namespace Studio23.SS2.BetterRebinder
 	[RequireComponent(typeof(ActionRebinderUiController))]
 	public class ActionRebinder : MonoBehaviour
 	{
-		public InputActionReference TargetAction;
+		[SerializeField]
+		private InputActionReference _targetActionReference;
+
+		public InputActionReference TargetActionReference
+		{
+			get => _targetActionReference;
+			set
+			{
+				_targetActionReference = value;
+			}
+		}
+
 		public bool ExcludeMouse;
 		public bool ControllerExpected;
-		private ActionRebinderUiController _rebindUiController;
 
+		private ActionRebinderUiController _rebindUiController;
 		private string _existingBindingPath;
 		private InputAction _targetInputAction;
 		private int _bindingIndex;
+		
+		[SerializeField] [HideInInspector] private string _bindingId;
 
-		private void Awake()
+		public ActionRebinderUiController RebindUiController => _rebindUiController;
+
+		public string BindingId
 		{
-			_rebindUiController = GetComponent<ActionRebinderUiController>();
-			ResolveActionAndBinding(out _targetInputAction);
+			get => _bindingId;
+			set => _bindingId = value;
 		}
 
-		private void Start()
+		private void SetupRebindAsset()
 		{
 			ResolveActionAndBinding(out _targetInputAction);
-			_rebindUiController.SetupUi(_targetInputAction);
+			_rebindUiController.SetupUi(_targetInputAction, this);
+		}
+
+		public void InitializeRebindAction(InputActionReference actionToSet)
+		{
+			TargetActionReference = actionToSet;
+			_rebindUiController = GetComponent<ActionRebinderUiController>();
+			SetupRebindAsset();
 		}
 
 		[ContextMenu("Test RebindButton")]
@@ -104,8 +126,8 @@ namespace Studio23.SS2.BetterRebinder
 
 		public bool ResolveActionAndBinding(out InputAction action)
 		{
-			action = TargetAction?.action;
-			if (action == null) 
+			action = TargetActionReference?.action;
+			if (action == null)
 				return false;
 			return true;
 		}
