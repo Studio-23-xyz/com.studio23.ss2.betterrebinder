@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Studio23.SS2.BetterRebinder.Utility;
 using UnityEngine;
@@ -29,14 +30,18 @@ namespace Studio23.SS2.BetterRebinder
 		private InputAction _targetInputAction;
 		private int _bindingIndex;
 		
-		[SerializeField] [HideInInspector] private string _bindingId;
+		[SerializeField] private string _bindingId;
 
 		public ActionRebinderUiController RebindUiController => _rebindUiController;
 
 		public string BindingId
 		{
 			get => _bindingId;
-			set => _bindingId = value;
+			set
+			{
+				_bindingId = value;
+				_rebindUiController.UpdateActionBinding();
+			}
 		}
 
 		private void SetupRebindAsset()
@@ -129,7 +134,17 @@ namespace Studio23.SS2.BetterRebinder
 			action = TargetActionReference?.action;
 			if (action == null)
 				return false;
+			if (string.IsNullOrEmpty(_bindingId))
+				return false;
+			var bindingId = new Guid(_bindingId);
 			return true;
 		}
+
+//#if UNITY_EDITOR
+//		private void OnValidate()
+//		{
+//			_rebindUiController.UpdateActionBinding();
+//		}
+//#endif
 	}
 }

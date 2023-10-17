@@ -13,6 +13,9 @@ public class ActionRebinderUiController : MonoBehaviour
 	public Image ActionBindingIcon;
 	public Button ActionRebindButton;
 
+	private InputAction _targetAction;
+	private int _bindingIndex;
+
 	private void Awake()
 	{
 		Setup();
@@ -27,10 +30,16 @@ public class ActionRebinderUiController : MonoBehaviour
 
 	public bool SetupUi(InputAction action, ActionRebinder actionRebinder)
 	{
+		_targetAction = action;
 		ActionName.text = action.name;
-		int index = InputSystemUtility.Instance.GetBindingIndex();
-		ActionControlText.text = action.GetBindingDisplayString(index, InputBinding.DisplayStringOptions.DontIncludeInteractions);
+		_bindingIndex = InputSystemUtility.Instance.GetBindingIndex();
+		ActionControlText.text = action.GetBindingDisplayString(_bindingIndex, InputBinding.DisplayStringOptions.DontIncludeInteractions);
 		ActionRebindButton.onClick.AddListener(actionRebinder.StartInteractiveRebind);
 		return true;
+	}
+
+	public void UpdateActionBinding()
+	{
+		ActionControlText.text = _targetAction.GetBindingDisplayString(_bindingIndex, InputBinding.DisplayStringOptions.DontIncludeInteractions);
 	}
 }

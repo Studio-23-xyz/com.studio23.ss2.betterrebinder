@@ -27,7 +27,7 @@ public class ActionRebinderEditor : Editor
 	{
 		EditorGUI.BeginChangeCheck();
 
-		DrawDefaultInspector();
+		//DrawDefaultInspector();
 		EditorGUILayout.PropertyField(m_ActionProperty);
 		var newSelectedBinding = EditorGUILayout.Popup(m_BindingLabel, m_SelectedBindingOption, m_BindingOptions);
 		if (newSelectedBinding != m_SelectedBindingOption)
@@ -49,11 +49,11 @@ public class ActionRebinderEditor : Editor
 		var actionReference = (InputActionReference)m_ActionProperty.objectReferenceValue;
 		var action = actionReference?.action;
 
-		m_SelectedBindingOption = -1;
 		if (action == null)
 		{
 			m_BindingOptions = Array.Empty<GUIContent>();
 			m_BindingOptionValues = Array.Empty<string>();
+			m_SelectedBindingOption = -1;
 			return;
 		}
 
@@ -62,6 +62,7 @@ public class ActionRebinderEditor : Editor
 
 		m_BindingOptions = new GUIContent[bindingCount];
 		m_BindingOptionValues = new string[bindingCount];
+		m_SelectedBindingOption = -1;
 
 		var currentBindingId = m_BindingIdProperty.stringValue;
 		for (int i = 0; i < bindingCount; i++)
