@@ -22,7 +22,8 @@ public class RebindActionEditor : UnityEditor.Editor
         m_RebindStopEventProperty = serializedObject.FindProperty("m_RebindStopEvent");
         m_DisplayStringOptionsProperty = serializedObject.FindProperty("m_DisplayStringOptions");
         m_ExcludeMouseProperty = serializedObject.FindProperty("m_ExcludeMouse");
-        m_SelectionImages = serializedObject.FindProperty("m_SelectionImages");
+        _isControllerExpectedProperty = serializedObject.FindProperty("_isControllerExpected");
+		m_SelectionImages = serializedObject.FindProperty("m_SelectionImages");
         m_BindingImage = serializedObject.FindProperty("m_BindingImage");
 
         RefreshBindingOptions();
@@ -62,6 +63,7 @@ public class RebindActionEditor : UnityEditor.Editor
             EditorGUILayout.PropertyField(m_RebindOverlayProperty);
             EditorGUILayout.PropertyField(m_RebindTextProperty);
             EditorGUILayout.PropertyField(m_ExcludeMouseProperty);
+            EditorGUILayout.PropertyField(_isControllerExpectedProperty);
             EditorGUILayout.PropertyField(m_SelectionImages);
             EditorGUILayout.PropertyField(m_BindingImage);
         }
@@ -162,6 +164,7 @@ public class RebindActionEditor : UnityEditor.Editor
     private SerializedProperty m_UpdateBindingUIEventProperty;
     private SerializedProperty m_DisplayStringOptionsProperty;
     private SerializedProperty m_ExcludeMouseProperty;
+    private SerializedProperty _isControllerExpectedProperty;
     private SerializedProperty m_SelectionImages;
     private SerializedProperty m_BindingImage;
 

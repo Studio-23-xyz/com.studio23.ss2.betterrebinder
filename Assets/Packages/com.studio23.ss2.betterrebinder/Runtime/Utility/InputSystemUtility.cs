@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.XR;
 
 namespace Studio23.SS2.BetterRebinder.Utility
 {

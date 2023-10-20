@@ -27,7 +27,7 @@ public class ActionRebinderEditor : Editor
 	{
 		EditorGUI.BeginChangeCheck();
 
-		//DrawDefaultInspector();
+		EditorGUILayout.IntField(m_SelectedBindingOption);
 		EditorGUILayout.PropertyField(m_ActionProperty);
 		var newSelectedBinding = EditorGUILayout.Popup(m_BindingLabel, m_SelectedBindingOption, m_BindingOptions);
 		if (newSelectedBinding != m_SelectedBindingOption)

@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 
-#if PRINT_DEBUG_LOGS
+namespace Studio23.SS2.BetterRebinder.Utility
+{
+	#if PRINT_DEBUG_LOGS
+
 	public static class DebugController
 	{
 		public static void DebugNormal(string message)
@@ -19,3 +22,4 @@
 		}
 	}
 #endif
+}

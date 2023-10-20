@@ -166,15 +166,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "Overlay",
-                    "type": "Button",
-                    "id": "dd2394d9-769d-4ca1-9b65-b31c0e6b6fb7",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -536,7 +527,7 @@
                     "path": "<DualShockGamepad>/buttonEast",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": "Playstation",
                     "action": "Crouch",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -1211,17 +1202,6 @@
                     "action": "0CutSceneSkip",
                     "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "117f7b95-7d8e-4ab9-945a-e21c041c3445",
-                    "path": "<Gamepad>/select",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Overlay",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 }
             ]
         },
@@ -1413,15 +1393,6 @@
                     "name": "0ResetAction",
                     "type": "Button",
                     "id": "7e920dad-644c-4b79-872b-96c15f6447ca",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Overlay",
-                    "type": "Button",
-                    "id": "76832700-90eb-461f-8129-441ff250a5ba",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -2559,17 +2530,6 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "0Apply",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "3fdde23a-3fb4-48ad-9a1c-37ad9c660d76",
-                    "path": "<Gamepad>/select",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Overlay",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

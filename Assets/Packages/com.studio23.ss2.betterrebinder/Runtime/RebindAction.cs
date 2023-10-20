@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -12,8 +11,6 @@ using Image = UnityEngine.UI.Image;
 
 public class RebindAction : MonoBehaviour
 {
-
-
 	/// <summary>
 	/// Reference to the action that is to be rebound.
 	/// </summary>
@@ -170,6 +167,12 @@ public class RebindAction : MonoBehaviour
 		}
 	}
 
+	public bool IsControllerExpected
+	{
+		get => _isControllerExpected;
+		set => _isControllerExpected = value;
+	}
+
 	/// <summary>
 	/// When an interactive rebind is in progress, this is the rebind operation controller.
 	/// Otherwise, it is <c>null</c>.
@@ -223,7 +226,6 @@ public class RebindAction : MonoBehaviour
 			return;
 		}
 
-		rebindedInput = $"<Keyboard>/{rebindedInput}";
 		CheckDuplicateBindings(rebindedInput, action, bindingIndex);
 
 		var temp = action.bindings;
@@ -311,32 +313,21 @@ public class RebindAction : MonoBehaviour
 		string newInput = null;
 		var inputReader = InputSystem.onAnyButtonPress.Call(newControl =>
 		{
-			CheckForCorrectInputDevice(newControl);
-			if (newControl.name.Equals("escape"))
-				Debug.Log($"Escape pressed, exiting rebinding");
 			newInput = FormatInputToEffectivePath(newControl);
 		});
 
-		while (string.IsNullOrEmpty(newInput))
+		if (_isControllerExpected)
+			await UniTask.Delay(TimeSpan.FromSeconds(7f));
+		else
 		{
-			await UniTask.Yield();
-			await UniTask.NextFrame();
+			while (string.IsNullOrEmpty(newInput))
+			{
+				await UniTask.Yield();
+				await UniTask.NextFrame();
+			}
 		}
 		inputReader.Dispose();
 		return newInput;
-	}
-
-	private void CheckForCorrectInputDevice(InputControl buttonPress)
-	{
-		string pattern = @"<(.*?)>";
-		Match match = Regex.Match(_existingBindingPath, pattern);
-		string inputDeviceFromNewKey = match.Groups[1].Value;
-		ValidateInputDevice(inputDeviceFromNewKey);
-	}
-
-	private void ValidateInputDevice(string inputDeviceFromNewKey)
-	{
-		if (inputDeviceFromNewKey.Contains())
 	}
 
 	private string FormatInputToEffectivePath(InputControl newControl)
@@ -347,7 +338,7 @@ public class RebindAction : MonoBehaviour
 			inputDeviceName = newControl.device.name.Replace("Windows", "");
 		else if (inputDeviceName.Contains("Dual"))
 			inputDeviceName = $"DualShockGamepad";
-		else if (!inputDeviceName.Contains("Keyboard") || !inputDeviceName.Contains("Mouse"))
+		else if (!inputDeviceName.Contains("Keyboard") && !inputDeviceName.Contains("Mouse"))
 			inputDeviceName = $"Gamepad";
 		
 		return $"<{inputDeviceName}>/{newBinding}";
@@ -495,6 +486,10 @@ public class RebindAction : MonoBehaviour
 	[Tooltip("Should this action exclude mouse buttons")]
 	[SerializeField]
 	private bool m_ExcludeMouse;
+
+	[Tooltip("Prevents passing of any inputs other than controllers")]
+	[SerializeField] 
+	private bool _isControllerExpected;
 
 	[SerializeField] private List<Image> m_SelectionImages = new List<Image>();
 

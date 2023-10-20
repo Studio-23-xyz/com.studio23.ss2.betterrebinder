@@ -40,9 +40,5 @@ public class RebindUiGenerator : MonoBehaviour
 	{
 		_currentBindingText = new List<string>();
 		var rebindMenu = GetComponentsInChildren<ActionRebinder>(true);
-		foreach (var menu in rebindMenu)
-		{
-			_currentBindingText.Add(menu.RebindUiController.ActionName.text);
-		}
 	}
 }

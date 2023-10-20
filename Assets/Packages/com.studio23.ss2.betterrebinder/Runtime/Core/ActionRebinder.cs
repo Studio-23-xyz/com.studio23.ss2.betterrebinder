@@ -25,14 +25,14 @@ namespace Studio23.SS2.BetterRebinder
 		public bool ExcludeMouse;
 		public bool ControllerExpected;
 
-		private ActionRebinderUiController _rebindUiController;
+		//private ActionRebinderUiController _rebindUiController;
 		private string _existingBindingPath;
 		private InputAction _targetInputAction;
 		private int _bindingIndex;
 		
 		[SerializeField] private string _bindingId;
 
-		public ActionRebinderUiController RebindUiController => _rebindUiController;
+		//public ActionRebinderUiController RebindUiController => _rebindUiController;
 
 		public string BindingId
 		{
@@ -40,20 +40,20 @@ namespace Studio23.SS2.BetterRebinder
 			set
 			{
 				_bindingId = value;
-				_rebindUiController.UpdateActionBinding();
+				//_rebindUiController.UpdateActionBinding();
 			}
 		}
 
 		private void SetupRebindAsset()
 		{
 			ResolveActionAndBinding(out _targetInputAction);
-			_rebindUiController.SetupUi(_targetInputAction, this);
+			//_rebindUiController.SetupUi(_targetInputAction, this);
 		}
 
 		public void InitializeRebindAction(InputActionReference actionToSet)
 		{
 			TargetActionReference = actionToSet;
-			_rebindUiController = GetComponent<ActionRebinderUiController>();
+			//_rebindUiController = GetComponent<ActionRebinderUiController>();
 			SetupRebindAsset();
 		}
 
@@ -140,11 +140,11 @@ namespace Studio23.SS2.BetterRebinder
 			return true;
 		}
 
-//#if UNITY_EDITOR
-//		private void OnValidate()
-//		{
-//			_rebindUiController.UpdateActionBinding();
-//		}
-//#endif
+#if UNITY_EDITOR
+		private void OnValidate()
+		{
+			//_rebindUiController.UpdateActionBinding();
+		}
+#endif
 	}
 }
