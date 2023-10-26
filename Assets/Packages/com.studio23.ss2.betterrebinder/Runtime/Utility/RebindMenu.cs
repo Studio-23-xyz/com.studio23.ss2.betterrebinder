@@ -76,7 +76,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 		private void RefreshBindingText()
 		{
 			if (_rebindingAssets == null)
-				_rebindingAssets = UiElementParent.GetComponentsInChildren<Rebinder>().ToList();
+				_rebindingAssets = FindObjectsOfType<Rebinder>().ToList();
 			foreach (var rebindingAsset in _rebindingAssets)
 			{
 				rebindingAsset.UpdateBindingDisplay();
@@ -87,6 +87,21 @@ namespace Studio23.SS2.BetterRebinder.Utility
 		public void Initialize()
 		{
 			InputDeviceObserver.ActiveDeviceChanged += RefreshBindingText;
+
+			if (_rebindingAssets == null)
+			{
+				_rebindingAssets = FindObjectsOfType<Rebinder>().ToList();
+				Debug.Log($"Rebinding assets found {_rebindingAssets.Count}");
+			}
+			foreach (var rebindingAsset in _rebindingAssets)
+			{
+				rebindingAsset.OnRebindActionComplete.AddListener(RefreshBindingText);
+			}
+		}
+
+		private void OnDisable()
+		{
+			InputDeviceObserver.ActiveDeviceChanged -= RefreshBindingText;
 		}
 
 		public bool IsValueChanged()

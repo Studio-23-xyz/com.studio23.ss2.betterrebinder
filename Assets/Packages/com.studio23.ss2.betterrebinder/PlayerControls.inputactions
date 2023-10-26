@@ -2644,16 +2644,6 @@
                     "devicePath": "<Gamepad>",
                     "isOptional": true,
                     "isOR": false
-                },
-                {
-                    "devicePath": "<XInputController>",
-                    "isOptional": true,
-                    "isOR": false
-                },
-                {
-                    "devicePath": "<DualShockGamepad>",
-                    "isOptional": true,
-                    "isOR": false
                 }
             ]
         }

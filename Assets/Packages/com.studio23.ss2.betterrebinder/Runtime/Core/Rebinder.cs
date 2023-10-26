@@ -1,8 +1,10 @@
 using Cysharp.Threading.Tasks;
 using Studio23.SS2.BetterRebinder.Data;
 using Studio23.SS2.BetterRebinder.Utility;
+using Studio23.SS2.ButtonIconResourceManager.core;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.UI;
@@ -20,6 +22,7 @@ namespace Studio23.SS2.BetterRebinder.Core
 		public TextMeshProUGUI ActionBindingText;
 		public GameObject ActionBindingImage;
 		public bool IsDynamic;
+		public bool IsControllerInstance;
 
 		#region Four Part Composite
 
@@ -31,7 +34,22 @@ namespace Studio23.SS2.BetterRebinder.Core
 
 		#endregion
 
-		public int BindingIndex => DeviceIndexResolver.DeviceIndex;
+		#region Events
+
+		public UnityEvent OnRebindActionComplete;
+		private int _bindingIndex;
+
+		#endregion
+
+		public int BindingIndex
+		{
+			get
+			{
+				_bindingIndex = DeviceIndexResolver.DeviceIndex;
+				return _bindingIndex;
+			}
+			private set => _bindingIndex = value;
+		}
 
 		private void Awake()
 		{
@@ -65,7 +83,7 @@ namespace Studio23.SS2.BetterRebinder.Core
 
 			FindAndSwapDuplicates(inputOverride);
 			_targetAction.ApplyBindingOverride(_targetIndex, inputOverride);
-			UpdateBindingDisplay();
+			OnRebindActionComplete?.Invoke();
 		}
 
 		private async UniTask<string> CheckForInputs()
@@ -76,7 +94,9 @@ namespace Studio23.SS2.BetterRebinder.Core
 			{
 				DebugController.DebugNormal(
 					$"Pressed button {newControl.name} from device {newControl.device.name} with shorter form {newControl.shortDisplayName}");
-				newBinding = FormatInputToEffectivePath(newControl);
+
+				if (DeviceIndexResolver.ResolveDeviceIndex(newControl.device.name) == BindingIndex)
+					newBinding = FormatInputToEffectivePath(newControl);
 			});
 
 			while (string.IsNullOrEmpty(newBinding))
@@ -146,8 +166,35 @@ namespace Studio23.SS2.BetterRebinder.Core
 
 		public void UpdateBindingDisplay()
 		{
-			if (!IsDynamic)
-				return;
+			ActionBindingText.text = "";
+			ActionBindingText.gameObject.SetActive(true);
+			if (IsControllerInstance)
+			{
+				BindingIndex = DeviceIndexResolver.ResolveDeviceIndex();
+				if (!ResolveActionAndBindingIndex(out int index) || BindingIndex < 0)
+					return;
+				index = index <= 0 ? 2 : index;
+				string displayString = _targetAction.GetBindingDisplayString(index, out string layout, out string controlPath,
+					InputBinding.DisplayStringOptions.DontIncludeInteractions);
+				ActionBindingImage.GetComponent<Image>().sprite = KeyIconManager.Instance.GetIcon(layout, controlPath);
+			}
+			else
+			{
+				int index;
+				if (!ResolveActionAndBindingIndex(out index))
+					return;
+				index = IsFourPartComposite ? (int)CompositeIndex : 0;
+				var displayString = _targetAction.GetBindingDisplayString(index, out _, out _,
+					InputBinding.DisplayStringOptions.DontIncludeInteractions);
+				ActionBindingText.text = displayString;
+				ActionBindingImage.gameObject.SetActive(false);
+			}
+			if (string.IsNullOrEmpty(ActionBindingText.text))
+				ActionBindingText.gameObject.SetActive(false);
+		}
+
+		public void RefreshBindingDisplay()
+		{
 			if (!ResolveActionAndBindingIndex(out int index) || BindingIndex < 0)
 				return;
 

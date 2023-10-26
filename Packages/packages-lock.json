@@ -7,6 +7,13 @@
       "dependencies": {},
       "hash": "cfe509a55602ba5be6df7fa0468b10298b8a053d"
     },
+    "com.studio23.ss2.buttoniconresourcemanager": {
+      "version": "2.0.7",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
     "com.unity.collab-proxy": {
       "version": "2.0.7",
       "depth": 0,
