@@ -128,14 +128,14 @@ namespace Studio23.SS2.BetterRebinder.Core
 				if (allBindings[i].effectivePath == rebindedInput)
 				{
 					InputAction duplicateAction = _targetAction.actionMap.FindAction(allBindings[i].action);
-					var bindingDuplicates = _targetAction.bindings;
-					if (duplicateAction.bindings[_targetIndex].effectivePath == rebindedInput &&
-						!duplicateAction.name.Equals(_targetAction.name) && !duplicateAction.name.Contains("0"))
+					if (!duplicateAction.name.Contains("0"))
 					{
 						DebugController.DebugColored(
 							$"Action {duplicateAction.name} has duplicate binding {duplicateAction.bindings[_targetIndex].effectivePath}",
 							$"#de8aff");
+
 						duplicateAction.ApplyBindingOverride(_targetIndex, _existingBindingPath);
+
 						DebugController.DebugColored(
 							$"Swapped binding to {duplicateAction.bindings[_targetIndex].effectivePath} for action {duplicateAction}",
 							$"#FF461E");
