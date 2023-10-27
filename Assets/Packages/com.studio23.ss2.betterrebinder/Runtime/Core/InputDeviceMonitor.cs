@@ -6,7 +6,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 {
 	public class InputDeviceMonitor : MonoBehaviour
 	{
-		public PlayerInput InputComponent;
+		private PlayerInput _inputComponent;
 
 		public delegate void OnActionEvent();
 
@@ -21,12 +21,13 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		private void OnEnable()
 		{
-			InputComponent.controlsChangedEvent.AddListener(InputDeviceChangedEvent);
+			_inputComponent = GetComponent<PlayerInput>();
+			_inputComponent.controlsChangedEvent.AddListener(InputDeviceChangedEvent);
 		}
 
 		private void OnDisable()
 		{
-			InputComponent.controlsChangedEvent.RemoveAllListeners();
+			_inputComponent.controlsChangedEvent.RemoveAllListeners();
 		}
 
 		private void Awake()
@@ -36,7 +37,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		private void InputDeviceChangedEvent(PlayerInput inputComponent)
 		{
-			var inputDevice = InputComponent.GetDevice<InputDevice>();
+			var inputDevice = _inputComponent.GetDevice<InputDevice>();
 			if (inputDevice.name == LastUsedDeviceName)
 				return;
 			LastUsedDeviceName = inputDevice.name;
