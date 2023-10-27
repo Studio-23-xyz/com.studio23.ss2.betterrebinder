@@ -166,6 +166,10 @@ namespace Studio23.SS2.BetterRebinder.Core
 
 		public void UpdateBindingDisplay()
 		{
+			if (_targetActionReference == null)
+			{
+				return;
+			}
 			ActionBindingText.text = "";
 			ActionBindingText.gameObject.SetActive(true);
 			if (IsControllerInstance)

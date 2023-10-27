@@ -106,10 +106,10 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		public bool IsValueChanged()
 		{
-			var rebindMenu = GetComponentsInChildren<RebindAction>(true);
+			var rebindMenu = GetComponentsInChildren<Rebinder>(true);
 			for (var index = 0; index < rebindMenu.Length; index++)
 			{
-				if (!_currentBindingText[index].Equals(rebindMenu[index].bindingText.text))
+				if (!_currentBindingText[index].Equals(rebindMenu[index].ActionBindingText.text))
 				{
 					return true;
 				}
@@ -126,7 +126,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		public void UpdateRebindElements()
 		{
-			foreach (RebindAction rebindElement in UiElementParent.GetComponentsInChildren<RebindAction>(true))
+			foreach (Rebinder rebindElement in UiElementParent.GetComponentsInChildren<Rebinder>(true))
 			{
 				rebindElement.UpdateBindingDisplay();
 			}
