@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.XR;
 
 namespace Studio23.SS2.BetterRebinder.Utility
 {
@@ -56,7 +55,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 				return 1; //Anything other than xbox or generic controller.
 		}
 
-		public int GetBIndingIndex()
+		public int GetBindingIndex()
 		{
 			if (InputDevice == null)
 			{
