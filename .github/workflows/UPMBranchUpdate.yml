@@ -12,8 +12,8 @@ jobs:
     steps:
     - name: Set Git Config
       run: |
-        git config --global user.email "tazimtazim2012@gmail.com"
-        git config --global user.name "Warhammer4000"
+        git config --global user.email "nurusshafievan@gmail.com"
+        git config --global user.name "N-Evan"
 
     - name: Checkout Repository
       uses: actions/checkout@v2
