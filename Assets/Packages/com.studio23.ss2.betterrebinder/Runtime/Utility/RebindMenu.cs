@@ -25,7 +25,8 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		private List<string> _currentBindingText;
 		private List<Rebinder> _rebindingAssets;
-		public readonly float RebindActionTimeout = 5f;
+		public float RebindActionTimeout = 5f;
+		public string PrefixToIgnore;
 
 		[ContextMenu("Generate Rebinding UI")]
 		public void GenerateRebindingElements()
@@ -48,7 +49,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 			foreach (var inputActionReference in inputActionReferences)
 			{
-				if (inputActionReference.name.Contains("0"))
+				if (inputActionReference.action.name.StartsWith(PrefixToIgnore))
 					continue;
 				var rebindAction = Instantiate(RebindActionPrefab, UiElementParent);
 				rebindAction.Initialize(inputActionReference);
