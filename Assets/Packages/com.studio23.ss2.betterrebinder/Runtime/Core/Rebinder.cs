@@ -99,13 +99,23 @@ namespace Studio23.SS2.BetterRebinder.Core
 					newBinding = FormatInputToEffectivePath(newControl);
 			});
 
-			while (string.IsNullOrEmpty(newBinding))
+			float timeout = 0f;
+			float startTimer = Time.unscaledTime;
+			while (string.IsNullOrEmpty(newBinding) && timeout < RebindMenu.Instance.RebindActionTimeout)
 			{
+				timeout = Time.unscaledTime - startTimer;
+				Debug.Log($"Time passed {timeout}");
 				await UniTask.Yield();
 				await UniTask.NextFrame();
 			}
 
 			inputReader.Dispose();
+			if (string.IsNullOrEmpty(newBinding))
+			{
+				RebindMenu.Instance.TimeoutRebindAction();
+				return null;
+			}
+
 			int newControlIndex = DeviceIndexResolver.DeviceIndex;
 			if (olderIndex != newControlIndex)
 			{

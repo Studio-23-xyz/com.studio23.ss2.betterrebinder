@@ -1,6 +1,8 @@
+using System;
 using Studio23.SS2.BetterRebinder.Core;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -11,26 +13,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 {
 	public class RebindMenu : MonoBehaviour
 	{
-		private static RebindMenu _instance;
-
-		public RebindMenu Instance
-		{
-			get
-			{
-				if (_instance == null)
-				{
-					_instance = FindObjectOfType<RebindMenu>();
-					if (_instance == null)
-					{
-						GameObject rebindMenu = new GameObject("Rebind Menu");
-						_instance = rebindMenu.AddComponent<RebindMenu>();
-						return _instance;
-					}
-				}
-
-				return _instance;
-			}
-		}
+		public static RebindMenu Instance;
 
 		public Transform UiElementParent;
 		public Rebinder RebindActionPrefab;
@@ -42,6 +25,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 
 		private List<string> _currentBindingText;
 		private List<Rebinder> _rebindingAssets;
+		public readonly float RebindActionTimeout = 5f;
 
 		[ContextMenu("Generate Rebinding UI")]
 		public void GenerateRebindingElements()
@@ -124,6 +108,15 @@ namespace Studio23.SS2.BetterRebinder.Utility
 			//LoadKeybinds();
 		}
 
+		private void Awake()
+		{
+			if (Instance == null)
+				Instance = this;
+			else 
+				Destroy(this);
+
+		}
+
 		public void UpdateRebindElements()
 		{
 			foreach (Rebinder rebindElement in UiElementParent.GetComponentsInChildren<Rebinder>(true))
@@ -142,11 +135,20 @@ namespace Studio23.SS2.BetterRebinder.Utility
 		}
 
 		/// <summary>
+		/// Implement save system to save the override string received from the function. 
+		/// </summary>
+		/// <returns>Input Binding override received as JSON</returns>
+		public string GetKeybindOverrides()
+		{
+			return InputAsset.SaveBindingOverridesAsJson();
+		}
+
+		/// <summary>
 		/// Used to store changed keybinds in PlayerPrefs under the key "rebinds" 
 		/// </summary>
 		public void SaveKeybinds()
 		{
-			var rebinds = InputAsset.SaveBindingOverridesAsJson();
+			var rebinds = GetKeybindOverrides();
 			PlayerPrefs.SetString("rebinds", rebinds);
 		}
 
@@ -168,11 +170,25 @@ namespace Studio23.SS2.BetterRebinder.Utility
 		/// <summary>
 		/// Responsible for loading keybinds from PlayerPrefs saved under the key "rebinds"
 		/// </summary>
+		[ContextMenu("Load Keybinds")]
 		public void LoadKeybinds()
 		{
 			var rebinds = PlayerPrefs.GetString("rebinds");
 			if (!string.IsNullOrEmpty(rebinds))
 				InputAsset.LoadBindingOverridesFromJson(rebinds);
+		}
+
+		public void ToggleRebindOverlayMenu(string actionName)
+		{
+			RebindOverlay.SetActive(!RebindOverlay.activeSelf);
+			RebindOverlayText.text = $"Press any key...";
+		}
+
+		public async void TimeoutRebindAction()
+		{
+			RebindOverlayText.text = $"No key pressed! Cancelling rebind operation.";
+			UniTask.Delay(TimeSpan.FromSeconds(2f));
+			ToggleRebindOverlayMenu("");
 		}
 	}
 }
