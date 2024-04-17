@@ -30,7 +30,6 @@
   "dependencies": {
 	"com.cysharp.unitask": "2.5.4"
   },
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Studio-23-xyz/com.studio23.ss2.betterrebinder.git"
