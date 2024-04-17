@@ -52,7 +52,8 @@ Scope(s) com.cysharp.unitask
 
 ### Initialize
 
-Yes. 
+Simply find the Input Rebind Canvas prefab, drag it into the scene and assign your desired Input Action Asset in the RebindMenu component. Once that's done, 
+use the context menu action and click on Generate Rebind Elements to spawn in and setup your rebinding actions in the UI and you're good to go! 
 
 ## Saving and Loading Data
 
@@ -66,4 +67,4 @@ Loading data is as simple as calling the LoadMethod.
 
 ## Other Links
 
-[OpenUPM Page](https://openupm.com/packages/com.studio23.ss2.savesystem/)
+[OpenUPM Page](https://openupm.com/packages/com.studio23.ss2.betterrebinder/)
