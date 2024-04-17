@@ -28,8 +28,8 @@
 	"settings"
   ],
   "dependencies": {
-	"com.studio23.ss2",
-	"com.cysharp.unitask"
+	"com.cysharp.unitask": "2.5.4"
+  },
   },
   "repository": {
     "type": "git",
