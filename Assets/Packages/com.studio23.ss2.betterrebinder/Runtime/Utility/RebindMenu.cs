@@ -52,7 +52,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 				if (inputActionReference.action.name.StartsWith(PrefixToIgnore))
 					continue;
 				var rebindAction = Instantiate(RebindActionPrefab, UiElementParent);
-				rebindAction.Initialize(inputActionReference);
+				//rebindAction.Initialize(inputActionReference);
 				_rebindingAssets.Add(rebindAction);
 			}
 #endif
@@ -80,7 +80,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 			}
 			foreach (var rebindingAsset in _rebindingAssets)
 			{
-				rebindingAsset.OnRebindActionComplete.AddListener(RefreshBindingText);
+				//rebindingAsset.OnRebindActionComplete.AddListener(RefreshBindingText);
 			}
 		}
 
@@ -94,10 +94,10 @@ namespace Studio23.SS2.BetterRebinder.Utility
 			var rebindMenu = GetComponentsInChildren<Rebinder>(true);
 			for (var index = 0; index < rebindMenu.Length; index++)
 			{
-				if (!_currentBindingText[index].Equals(rebindMenu[index].ActionBindingText.text))
-				{
-					return true;
-				}
+				//if (!_currentBindingText[index].Equals(rebindMenu[index].ActionBindingText.text))
+				//{
+				//	return true;
+				//}
 			}
 
 			return false;
@@ -106,7 +106,6 @@ namespace Studio23.SS2.BetterRebinder.Utility
 		private void Start()
 		{
 			Initialize();
-			//LoadKeybinds();
 		}
 
 		private void Awake()

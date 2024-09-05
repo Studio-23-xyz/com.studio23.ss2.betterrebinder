@@ -1,258 +1,599 @@
-using Cysharp.Threading.Tasks;
-using Studio23.SS2.BetterRebinder.Data;
-using Studio23.SS2.BetterRebinder.Utility;
-using Studio23.SS2.ButtonIconResourceManager.core;
+
+using System.Collections.Generic;
+using System;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Utilities;
+using System.IO;
 using UnityEngine.UI;
 
 namespace Studio23.SS2.BetterRebinder.Core
 {
 	public class Rebinder : MonoBehaviour
 	{
-		[SerializeField] private InputActionReference _targetActionReference;
-		private InputAction _targetAction;
-		private string _existingBindingPath;
-		private int _targetIndex;
-		public TextMeshProUGUI ActionName;
+        /// <summary>
+        /// Reference to the action that is to be rebound.
+        /// </summary>
+        public InputActionReference actionReference
+        {
+            get => m_Action;
+            set
+            {
+                m_Action = value;
+                UpdateActionLabel();
+                UpdateBindingDisplay();
+            }
+        }
 
-		public TextMeshProUGUI ActionBindingText;
-		public GameObject ActionBindingImage;
-		public bool IsDynamic;
-		public bool IsControllerInstance;
+        /// <summary>
+        /// ID (in string form) of the binding that is to be rebound on the action.
+        /// </summary>
+        /// <seealso cref="InputBinding.id"/>
+        public string bindingId
+        {
+            get => m_BindingId;
+            set
+            {
+                m_BindingId = value;
+                UpdateBindingDisplay();
+            }
+        }
 
-		#region Four Part Composite
+        public bool IsBindingKeyBoard()
+        {
+            var bindingId = new Guid(m_BindingId);
+            var bindingIndex = actionReference.action.bindings.IndexOf(x => x.id == bindingId);
+            if (actionReference.action.bindings[bindingIndex].isComposite)
+            {
+                bindingIndex++;
+            }
+            return actionReference.action.bindings[bindingIndex].effectivePath.Contains("Keyboard");
+        }
 
-		[Tooltip("This tick enables iteration of four part composites which is used for movement based actions.")]
-		public bool IsFourPartComposite;
+        public InputBinding.DisplayStringOptions displayStringOptions
+        {
+            get => m_DisplayStringOptions;
+            set
+            {
+                m_DisplayStringOptions = value;
+                UpdateBindingDisplay();
+            }
+        }
 
-		[Tooltip("Specify which one of the four part composite should this action target specifically.")]
-		public FourPartComposite CompositeIndex;
+        /// <summary>
+        /// Text component that receives the name of the action. Optional.
+        /// </summary>
+        public TextMeshProUGUI actionLabel
+        {
+            get => m_ActionLabel;
+            set
+            {
+                m_ActionLabel = value;
+                UpdateActionLabel();
+            }
+        }
 
-		#endregion
+        /// <summary>
+        /// Text component that receives the display string of the binding. Can be <c>null</c> in which
+        /// case the component entirely relies on <see cref="updateBindingUIEvent"/>.
+        /// </summary>
+        public TextMeshProUGUI bindingText
+        {
+            get => m_BindingText;
+            set
+            {
+                m_BindingText = value;
+                UpdateBindingDisplay();
+            }
+        }
 
-		#region Events
+        /// <summary>
+        /// Optional text component that receives a text prompt when waiting for a control to be actuated.
+        /// </summary>
+        /// <seealso cref="startRebindEvent"/>
+        /// <seealso cref="rebindOverlay"/>
+        public TextMeshProUGUI rebindPrompt
+        {
+            get => m_RebindText;
+            set => m_RebindText = value;
+        }
 
-		public UnityEvent OnRebindActionComplete;
-		private int _bindingIndex;
+        /// <summary>
+        /// Optional UI that is activated when an interactive rebind is started and deactivated when the rebind
+        /// is finished. This is normally used to display an overlay over the current UI while the system is
+        /// waiting for a control to be actuated.
+        /// </summary>
+        /// <remarks>
+        /// If neither <see cref="rebindPrompt"/> nor <c>rebindOverlay</c> is set, the component will temporarily
+        /// replaced the <see cref="bindingText"/> (if not <c>null</c>) with <c>"Waiting..."</c>.
+        /// </remarks>
+        /// <seealso cref="startRebindEvent"/>
+        /// <seealso cref="rebindPrompt"/>
+        public GameObject rebindOverlay
+        {
+            get => m_RebindOverlay;
+            set => m_RebindOverlay = value;
+        }
 
-		#endregion
+        /// <summary>
+        /// Event that is triggered every time the UI updates to reflect the current binding.
+        /// This can be used to tie custom visualizations to bindings.
+        /// </summary>
+        public UpdateBindingUIEvent updateBindingUIEvent
+        {
+            get
+            {
+                if (m_UpdateBindingUIEvent == null)
+                    m_UpdateBindingUIEvent = new UpdateBindingUIEvent();
+                return m_UpdateBindingUIEvent;
+            }
+        }
 
-		public int BindingIndex
-		{
-			get
-			{
-				_bindingIndex = DeviceIndexResolver.DeviceIndex;
-				return _bindingIndex;
-			}
-			private set => _bindingIndex = value;
-		}
+        /// <summary>
+        /// Event that is triggered when an interactive rebind is started on the action.
+        /// </summary>
+        public InteractiveRebindEvent startRebindEvent
+        {
+            get
+            {
+                if (m_RebindStartEvent == null)
+                    m_RebindStartEvent = new InteractiveRebindEvent();
+                return m_RebindStartEvent;
+            }
+        }
 
-		private void Awake()
-		{
-			GetComponent<Button>().onClick.AddListener(StartRebinding);
-		}
+        /// <summary>
+        /// Event that is triggered when an interactive rebind has been completed or canceled.
+        /// </summary>
+        public InteractiveRebindEvent stopRebindEvent
+        {
+            get
+            {
+                if (m_RebindStopEvent == null)
+                    m_RebindStopEvent = new InteractiveRebindEvent();
+                return m_RebindStopEvent;
+            }
+        }
 
-		public void Initialize(InputActionReference targetActionReference)
-		{
-			_targetActionReference = targetActionReference;
-			ActionName.text = _targetActionReference.name.Split('/')[1];
-			name = ActionName.text;
-			UpdateBindingDisplay();
-		}
+        /// <summary>
+        /// When an interactive rebind is in progress, this is the rebind operation controller.
+        /// Otherwise, it is <c>null</c>.
+        /// </summary>
+        public InputActionRebindingExtensions.RebindingOperation ongoingRebind => m_RebindOperation;
 
-		public async void StartRebinding()
-		{
-			DebugController.DebugColored($"Rebinding started", $"#8ab7ff");
-			if (ResolveActionAndBindingIndex(out _targetIndex) == false)
-			{
-				DebugController.DebugWarning($"Failed to resolve action or binding for {gameObject.name}");
-			}
+        /// <summary>
+        /// Return the action and binding index for the binding that is targeted by the component
+        /// according to
+        /// </summary>
+        /// <param name="action"></param>
+        /// <param name="bindingIndex"></param>
+        /// <returns></returns>
+        public bool ResolveActionAndBinding(out InputAction action, out int bindingIndex)
+        {
+            bindingIndex = -1;
 
-			_existingBindingPath = _targetAction.bindings[_targetIndex].effectivePath;
-			string inputOverride = await CheckForInputs();
-			if (inputOverride == null)
-			{
-				DebugController.DebugWarning($"Input device changed / Rebind window passed without any input.");
-				CancelRebindOperation();
-				return;
-			}
+            action = m_Action?.action;
+            if (action == null)
+                return false;
 
-			FindAndSwapDuplicates(inputOverride);
-			_targetAction.ApplyBindingOverride(_targetIndex, inputOverride);
-			OnRebindActionComplete?.Invoke();
-		}
+            if (string.IsNullOrEmpty(m_BindingId))
+                return false;
 
-		private async UniTask<string> CheckForInputs()
-		{
-			string newBinding = string.Empty;
-			int olderIndex = DeviceIndexResolver.DeviceIndex;
-			var inputReader = InputSystem.onAnyButtonPress.Call(newControl =>
-			{
-				DebugController.DebugNormal(
-					$"Pressed button {newControl.name} from device {newControl.device.name} with shorter form {newControl.shortDisplayName}");
+            // Look up binding index.
+            var bindingId = new Guid(m_BindingId);
+            bindingIndex = action.bindings.IndexOf(x => x.id == bindingId);
+            if (bindingIndex == -1)
+            {
+                Debug.LogError($"Cannot find binding with ID '{bindingId}' on '{action}'", this);
+                return false;
+            }
 
-				if (DeviceIndexResolver.ResolveDeviceIndex(newControl.device.name) == BindingIndex)
-					newBinding = FormatInputToEffectivePath(newControl);
-			});
+            return true;
+        }
 
-			float timeout = 0f;
-			float startTimer = Time.unscaledTime;
-			while (string.IsNullOrEmpty(newBinding) && timeout < RebindMenu.Instance.RebindActionTimeout)
-			{
-				timeout = Time.unscaledTime - startTimer;
-				Debug.Log($"Time passed {timeout}");
-				await UniTask.Yield();
-				await UniTask.NextFrame();
-			}
+        /// <summary>
+        /// Trigger a refresh of the currently displayed binding.
+        /// </summary>
+        public void UpdateBindingDisplay()
+        {
+            var displayString = string.Empty;
+            var deviceLayoutName = default(string);
+            var controlPath = default(string);
 
-			inputReader.Dispose();
-			if (string.IsNullOrEmpty(newBinding))
-			{
-				RebindMenu.Instance.TimeoutRebindAction();
-				return null;
-			}
+            // Get display string from action.
+            var action = m_Action?.action;
+            if (action != null)
+            {
+                var bindingIndex = action.bindings.IndexOf(x => x.id.ToString() == m_BindingId);
+                if (bindingIndex != -1)
+                    displayString = action.GetBindingDisplayString(bindingIndex, out deviceLayoutName, out controlPath, displayStringOptions);
+            }
 
-			int newControlIndex = DeviceIndexResolver.DeviceIndex;
-			if (olderIndex != newControlIndex)
-			{
-				DebugController.DebugWarning($"New input is from a different device! Cancelling rebind operation.");
-				return "";
-			}
+            // Set on label (if any).
+            if (m_BindingText != null)
+                m_BindingText.text = displayString;
 
-			DebugController.DebugNormal($"Formatted binding: {newBinding}");
-			return newBinding;
-		}
+            // Give listeners a chance to configure UI in response.
+            m_UpdateBindingUIEvent?.Invoke(this, displayString, deviceLayoutName, controlPath);
+        }
 
-		private void CancelRebindOperation()
-		{
-			//TODO print cancellation message on UI and handle necessities
-		}
+        /// <summary>
+        /// Remove currently applied binding overrides.
+        /// </summary>
+        public void ResetToDefault()
+        {
+            if (!ResolveActionAndBinding(out var action, out var bindingIndex))
+                return;
 
-		private string FormatInputToEffectivePath(InputControl newControl)
-		{
-			//TODO Improve ControlPath formatting
-			string newBinding = newControl.name;
-			string inputDevice = newControl.device.name;
-			int deviceIndex = DeviceIndexResolver.ResolveDeviceIndex(inputDevice);
-			if (deviceIndex == 2)
-				inputDevice = $"XInputController";
-			else if (deviceIndex == 1)
-				inputDevice = $"DualShockGamepad";
-			else if (deviceIndex == 0 && inputDevice.Contains("keyboard"))
-				inputDevice = $"Keyboard";
-			else if (deviceIndex == 0 && inputDevice.Contains("mouse"))
-				inputDevice = $"Mouse";
-			return $"<{inputDevice}>/{newBinding}";
-		}
+            if (action.bindings[bindingIndex].isComposite)
+            {
+                // It's a composite. Remove overrides from part bindings.
+                for (var i = bindingIndex + 1; i < action.bindings.Count && action.bindings[i].isPartOfComposite; ++i)
+                    action.RemoveBindingOverride(i);
+            }
+            else
+            {
+                action.RemoveBindingOverride(bindingIndex);
+            }
+            UpdateBindingDisplay();
+        }
 
-		private void FindAndSwapDuplicates(string rebindedInput)
-		{
-			var allBindings = _targetAction.actionMap.bindings;
-			ResolveActionAndBindingIndex(out _targetIndex);
-			for (int i = 0; i < allBindings.Count; i++)
-			{
-				if (allBindings[i].effectivePath == rebindedInput)
-				{
-					InputAction duplicateAction = _targetAction.actionMap.FindAction(allBindings[i].action);
-					if (!duplicateAction.name.Contains("0"))
-					{
-						DebugController.DebugColored(
-							$"Action {duplicateAction.name} has duplicate binding {duplicateAction.bindings[_targetIndex].effectivePath}",
-							$"#de8aff");
+        /// <summary>
+        /// Initiate an interactive rebind that lets the player actuate a control to choose a new binding
+        /// for the action.
+        /// </summary>
+        public void StartInteractiveRebind()
+        {
+            if (!ResolveActionAndBinding(out var action, out var bindingIndex))
+                return;
 
-						duplicateAction.ApplyBindingOverride(_targetIndex, _existingBindingPath);
+            // If the binding is a composite, we need to rebind each part in turn.
+            if (action.bindings[bindingIndex].isComposite)
+            {
+                var firstPartIndex = bindingIndex + 1;
+                if (firstPartIndex < action.bindings.Count && action.bindings[firstPartIndex].isPartOfComposite)
+                    PerformInteractiveRebind(action, firstPartIndex, allCompositeParts: true);
+            }
+            else
+            {
+                PerformInteractiveRebind(action, bindingIndex);
+            }
+        }
 
-						DebugController.DebugColored(
-							$"Swapped binding to {duplicateAction.bindings[_targetIndex].effectivePath} for action {duplicateAction}",
-							$"#FF461E");
-					}
-				}
-			}
-		}
+        private void PerformInteractiveRebind(InputAction action, int bindingIndex, bool allCompositeParts = false)
+        {
+            m_RebindOperation?.Cancel(); // Will null out m_RebindOperation.
 
-		public void UpdateBindingDisplay()
-		{
-			if (_targetActionReference == null)
-			{
-				return;
-			}
-			ActionBindingText.text = "";
-			ActionBindingText.gameObject.SetActive(true);
-			if (IsControllerInstance)
-			{
-				BindingIndex = DeviceIndexResolver.ResolveDeviceIndex();
-				if (!ResolveActionAndBindingIndex(out int index) || BindingIndex < 0)
-					return;
-				index = index <= 0 ? 2 : index;
-				string displayString = _targetAction.GetBindingDisplayString(index, out string layout, out string controlPath,
-					InputBinding.DisplayStringOptions.DontIncludeInteractions);
-				ActionBindingImage.GetComponent<Image>().sprite = KeyIconManager.Instance.GetIcon(layout, controlPath);
-			}
-			else
-			{
-				int index;
-				if (!ResolveActionAndBindingIndex(out index))
-					return;
-				index = IsFourPartComposite ? (int)CompositeIndex : 0;
-				var displayString = _targetAction.GetBindingDisplayString(index, out _, out _,
-					InputBinding.DisplayStringOptions.DontIncludeInteractions);
-				ActionBindingText.text = displayString;
-				ActionBindingImage.gameObject.SetActive(false);
-			}
-			if (string.IsNullOrEmpty(ActionBindingText.text))
-				ActionBindingText.gameObject.SetActive(false);
-		}
+            void CleanUp()
+            {
+                m_RebindOperation?.Dispose();
+                m_RebindOperation = null;
+            }
 
-		public void RefreshBindingDisplay()
-		{
-			if (!ResolveActionAndBindingIndex(out int index) || BindingIndex < 0)
-				return;
+            action.Disable();
+            var previousPath = action.bindings[bindingIndex].effectivePath;
 
-			string displayString = _targetAction.GetBindingDisplayString(index, out _, out string controlPath,
-				InputBinding.DisplayStringOptions.DontIncludeInteractions);
-			ActionBindingText.text = controlPath;
-		}
+            // Configure the rebind.
+            m_RebindOperation = action.PerformInteractiveRebinding(bindingIndex)
+                .OnCancel(
+                    operation =>
+                    {
+                        action.Enable();
+                        m_RebindStopEvent?.Invoke(this, operation);
+                        //m_RebindOverlay?.SetActive(false);
+                        UpdateBindingDisplay();
+                        CleanUp();
+                    })
+                .OnComplete(
+                    operation =>
+                    {
+                        //m_RebindOverlay?.SetActive(false);
+                        m_RebindStopEvent?.Invoke(this, operation);
 
-		private bool ResolveActionAndBindingIndex(out int index)
-		{
-			index = -1;
-			if (_targetActionReference == null)
-			{
-				DebugController.DebugColored($"Action reference is null! Please fix for {gameObject.name}", $"#D66666");
-				return false;
-			}
+                        CheckAndSwapDuplicates(action, bindingIndex, previousPath);
 
-			_targetAction = _targetActionReference.action;
+                        UpdateBindingDisplay();
+                        CleanUp();
 
-			if (IsFourPartComposite)
-				index = ((4 * BindingIndex) + BindingIndex) + (int)CompositeIndex;
-			else
-				index = BindingIndex;
-			if (_targetAction == null)
-				return false;
-			return true;
-		}
+                        // If there's more composite parts we should bind, initiate a rebind
+                        // for the next part.
+                        if (allCompositeParts)
+                        {
+                            var nextBindingIndex = bindingIndex + 1;
+                            if (nextBindingIndex < action.bindings.Count && action.bindings[nextBindingIndex].isPartOfComposite)
+                                PerformInteractiveRebind(action, nextBindingIndex, true);
+                        }
+                        action.Enable();
+                    });
 
+            UpdateRebindingControlsExcluding();
+            //UpdateRebindingCancel();
+            UpdateRebindingPotentialMatch();
+
+
+            // If it's a part binding, show the name of the part in the UI.
+            //var partName = default(string);
+            //if (action.bindings[bindingIndex].isPartOfComposite)
+            //    partName = $"Binding '{action.bindings[bindingIndex].name}'. ";
+
+            // Bring up rebind overlay, if we have one.
+            //m_RebindOverlay?.SetActive(true);
+            //if (m_RebindText != null)
+            //{
+            //    var text = !string.IsNullOrEmpty(m_RebindOperation.expectedControlType)
+            //        ? $"{partName}Waiting for {m_RebindOperation.expectedControlType} input..."
+            //        : $"{partName}Waiting for input...";
+            //    m_RebindText.text = text;
+            //}
+
+            // If we have no rebind overlay and no callback but we have a binding text label,
+            // temporarily set the binding text label to "<Waiting>".
+            //if (m_RebindOverlay == null && m_RebindText == null && m_RebindStartEvent == null && m_BindingText != null)
+            //    m_BindingText.text = "<Waiting...>";
+
+            m_bindingIcon.gameObject.SetActive(false);
+            m_BindingText.gameObject.SetActive(true);
+            m_BindingText.text = $"[Waiting for Input]";
+
+            // Give listeners a chance to act on the rebind starting.
+            m_RebindStartEvent?.Invoke(this, m_RebindOperation);
+
+            m_RebindOperation.Start();
+        }
+
+
+        private void CheckAndSwapDuplicates(InputAction action, int bindingIndex, string pathBeforeBinding)
+        {
+            string currentPath = action.bindings[bindingIndex].effectivePath;
+
+            foreach (var otherAction in action.actionMap)
+            {
+                if (otherAction != action)
+                {
+                    for (int i = 0; i < otherAction.bindings.Count; i++)
+                    {
+                        if (otherAction.bindings[i].effectivePath.Equals(currentPath))
+                        {
+                            otherAction.ApplyBindingOverride(i,pathBeforeBinding);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < otherAction.bindings.Count; i++)
+                    {
+
+                        if(i == bindingIndex) continue;
+                        
+                        if (otherAction.bindings[i].isPartOfComposite && otherAction.bindings[i].effectivePath.Equals(currentPath))
+                        {
+                            otherAction.ApplyBindingOverride(i, pathBeforeBinding);
+                        }
+                    }
+                }
+            }
+
+        }
+
+
+        private void UpdateRebindingControlsExcluding()
+        {
+            if(_controlsExcludePath.FirstOrDefault() == null) return;
+            foreach (var excludePath in _controlsExcludePath)
+            {
+                m_RebindOperation.WithControlsExcluding(excludePath);
+            }
+        }
+
+        public void PopulateControlsExcludingList(string path)
+        {
+            _controlsExcludePath.Add(path);
+        }
+
+        public void PopulateControlsExcludingList(List<InputBinding> inputBinding)
+        {
+            foreach (var binding in inputBinding)
+            {
+                _controlsExcludePath.Add(binding.effectivePath);
+            }
+            
+        }
+
+        private void UpdateRebindingCancel()
+        {
+            if (_rebindingCancelPath.FirstOrDefault() == null) return;
+            foreach (var cancelPath in _rebindingCancelPath)
+            {
+                m_RebindOperation.WithCancelingThrough(cancelPath);
+            }
+        }
+
+        public void PopulateRebindingCancelList(string path)
+        {
+            _rebindingCancelPath.Add(path);
+        }
+
+        public void PopulateRebindingCancelList(InputBinding inputBinding)
+        {
+            _rebindingCancelPath.Add(inputBinding.effectivePath);
+        }
+
+        public void PopulateRebindingCancelList(List<InputControl> controls)
+        {
+            foreach (var control in controls)
+            {
+                _rebindingCancelPath.Add(control.path);
+            }
+        }
+
+        public void UpdateRebindingPotentialMatch()
+        {
+            m_RebindOperation.OnPotentialMatch(operation =>
+            {
+                foreach (var cancelPath in _rebindingCancelPath)
+                {
+                    var trimmedPath = cancelPath.Replace("<", "/").Replace(">", "");
+                    if (operation.selectedControl.path.Equals(trimmedPath))
+                    {
+                        m_RebindOperation?.Cancel();
+                        break;
+                    }
+                }
+            });
+        }
+
+        protected void OnEnable()
+        {
+            if (s_RebindActionUIs == null)
+                s_RebindActionUIs = new List<Rebinder>();
+            s_RebindActionUIs.Add(this);
+            if (s_RebindActionUIs.Count == 1)
+                InputSystem.onActionChange += OnActionChange;
+        }
+
+        protected void OnDisable()
+        {
+            m_RebindOperation?.Dispose();
+            m_RebindOperation = null;
+
+            s_RebindActionUIs.Remove(this);
+            if (s_RebindActionUIs.Count == 0)
+            {
+                s_RebindActionUIs = null;
+                InputSystem.onActionChange -= OnActionChange;
+            }
+        }
+
+        void Start()
+        {
+            UpdateActionLabel();
+            UpdateBindingDisplay();
+        }
+
+        // When the action system re-resolves bindings, we want to update our UI in response. While this will
+        // also trigger from changes we made ourselves, it ensures that we react to changes made elsewhere. If
+        // the user changes keyboard layout, for example, we will get a BoundControlsChanged notification and
+        // will update our UI to reflect the current keyboard layout.
+        private static void OnActionChange(object obj, InputActionChange change)
+        {
+            if (change != InputActionChange.BoundControlsChanged)
+                return;
+
+            var action = obj as InputAction;
+            var actionMap = action?.actionMap ?? obj as InputActionMap;
+            var actionAsset = actionMap?.asset ?? obj as InputActionAsset;
+
+            for (var i = 0; i < s_RebindActionUIs.Count; ++i)
+            {
+                var component = s_RebindActionUIs[i];
+                var referencedAction = component.actionReference?.action;
+                if (referencedAction == null)
+                    continue;
+
+                if (referencedAction == action ||
+                    referencedAction.actionMap == actionMap ||
+                    referencedAction.actionMap?.asset == actionAsset)
+                    component.UpdateBindingDisplay();
+            }
+        }
+
+        [Tooltip("Reference to action that is to be rebound from the UI.")]
+        [SerializeField]
+        private InputActionReference m_Action;
+
+
+
+        [SerializeField]
+        private string m_BindingId;
+
+        [SerializeField]
+        private InputBinding.DisplayStringOptions m_DisplayStringOptions;
+
+        [Tooltip("Text label that will receive the name of the action. Optional. Set to None to have the "
+            + "rebind UI not show a label for the action.")]
+        [SerializeField]
+        private TextMeshProUGUI m_ActionLabel;
+
+        [SerializeField]
+        private bool _overrideActionLabel;
+
+        [SerializeField] 
+        private string _overrideActionLabelText;
+
+        [SerializeField]
+        private Image m_bindingIcon;
+
+        [Tooltip("Text label that will receive the current, formatted binding string.")]
+        [SerializeField]
+        private TextMeshProUGUI m_BindingText;
+
+        [Tooltip("Optional UI that will be shown while a rebind is in progress.")]
+        [SerializeField]
+        private GameObject m_RebindOverlay;
+
+        [Tooltip("Optional text label that will be updated with prompt for user input.")]
+        [SerializeField]
+        private TextMeshProUGUI m_RebindText;
+
+        [Tooltip("Event that is triggered when the way the binding is display should be updated. This allows displaying "
+            + "bindings in custom ways, e.g. using images instead of text.")]
+        [SerializeField]
+        private UpdateBindingUIEvent m_UpdateBindingUIEvent;
+
+        [Tooltip("Event that is triggered when an interactive rebind is being initiated. This can be used, for example, "
+            + "to implement custom UI behavior while a rebind is in progress. It can also be used to further "
+            + "customize the rebind.")]
+        [SerializeField]
+        private InteractiveRebindEvent m_RebindStartEvent;
+
+        [Tooltip("Event that is triggered when an interactive rebind is complete or has been aborted.")]
+        [SerializeField]
+        private InteractiveRebindEvent m_RebindStopEvent;
+
+        private InputActionRebindingExtensions.RebindingOperation m_RebindOperation;
+
+        private static List<Rebinder> s_RebindActionUIs;
+        private List<string> _controlsExcludePath = new List<string>();
+        private List<string> _rebindingCancelPath = new List<string>();
+        
+
+        // We want the label for the action name to update in edit mode, too, so
+        // we kick that off from here.
 #if UNITY_EDITOR
-		private void OnValidate()
-		{
-			UpdateBindingDisplay();
-		}
-#endif
-	}
-}
+        protected void OnValidate()
+        {
+            UpdateActionLabel();
+            UpdateBindingDisplay();
+        }
 
-namespace Studio23.SS2.BetterRebinder.Data
-{
-	public enum FourPartComposite
-	{
-		Up = 1,
-		Down = 2,
-		Left = 3,
-		Right = 4
-	}
+#endif
+
+        private void UpdateActionLabel()
+        {
+            if (m_ActionLabel != null)
+            {
+                var action = m_Action?.action;
+                if (_overrideActionLabel)
+                {
+                    m_ActionLabel.text = _overrideActionLabelText;
+                }
+                else
+                {
+                    m_ActionLabel.text = action != null ? action.name : string.Empty;
+                }
+            }
+        }
+
+        [Serializable]
+        public class UpdateBindingUIEvent : UnityEvent<Rebinder, string, string, string>
+        {
+        }
+
+        [Serializable]
+        public class InteractiveRebindEvent : UnityEvent<Rebinder, InputActionRebindingExtensions.RebindingOperation>
+        {
+        }
+    }
 }

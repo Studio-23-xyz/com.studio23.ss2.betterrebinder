@@ -53,7 +53,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 			if (context.performed)
 			{
 				OnInteractAction?.Invoke();
-				DebugController.DebugNormal($"Interact pressed");
+				//DebugController.DebugNormal($"Interact pressed");
 			}
 		}
 
@@ -62,7 +62,7 @@ namespace Studio23.SS2.BetterRebinder.Utility
 			if (context.performed)
 			{
 				OnCrouchAction?.Invoke();
-				DebugController.DebugNormal($"Crouch pressed");
+				//DebugController.DebugNormal($"Crouch pressed");
 			}
 		}
 	}
