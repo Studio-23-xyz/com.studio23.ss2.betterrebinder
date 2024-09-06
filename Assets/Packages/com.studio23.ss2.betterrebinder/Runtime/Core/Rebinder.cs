@@ -293,7 +293,7 @@ namespace Studio23.SS2.BetterRebinder.Core
                         m_RebindStopEvent?.Invoke(this, operation);
 
                         CheckAndSwapDuplicates(action, bindingIndex, previousPath);
-
+                        CheckAndApplyRebindInOtherActionMaps(action, bindingIndex, previousPath);
                         UpdateBindingDisplay();
                         CleanUp();
 
@@ -309,29 +309,8 @@ namespace Studio23.SS2.BetterRebinder.Core
                     });
 
             UpdateRebindingControlsExcluding();
-            //UpdateRebindingCancel();
             UpdateRebindingPotentialMatch();
 
-
-            // If it's a part binding, show the name of the part in the UI.
-            //var partName = default(string);
-            //if (action.bindings[bindingIndex].isPartOfComposite)
-            //    partName = $"Binding '{action.bindings[bindingIndex].name}'. ";
-
-            // Bring up rebind overlay, if we have one.
-            //m_RebindOverlay?.SetActive(true);
-            //if (m_RebindText != null)
-            //{
-            //    var text = !string.IsNullOrEmpty(m_RebindOperation.expectedControlType)
-            //        ? $"{partName}Waiting for {m_RebindOperation.expectedControlType} input..."
-            //        : $"{partName}Waiting for input...";
-            //    m_RebindText.text = text;
-            //}
-
-            // If we have no rebind overlay and no callback but we have a binding text label,
-            // temporarily set the binding text label to "<Waiting>".
-            //if (m_RebindOverlay == null && m_RebindText == null && m_RebindStartEvent == null && m_BindingText != null)
-            //    m_BindingText.text = "<Waiting...>";
 
             m_bindingIcon.gameObject.SetActive(false);
             m_BindingText.gameObject.SetActive(true);
@@ -374,7 +353,62 @@ namespace Studio23.SS2.BetterRebinder.Core
                     }
                 }
             }
+        }
 
+
+        private void CheckAndApplyRebindInOtherActionMaps(InputAction action, int bindingIndex, string pathBeforeBinding)
+        {
+            string currentPath = action.bindings[bindingIndex].effectivePath;
+            var inputActionAsset = action.actionMap.asset;
+
+            foreach (var otherActionMap in inputActionAsset.actionMaps)
+            {
+                if(otherActionMap == action.actionMap) continue;
+
+                var matchFound = otherActionMap.actions.FirstOrDefault(x => x.name.Replace(otherActionMap.name,"").Equals(action.name.Replace(action.actionMap.name,"")));
+                if(matchFound == null) continue;
+
+                foreach (var otherAction in otherActionMap.actions)
+                {
+                    if (otherAction == matchFound)
+                    {
+                        if (otherAction.bindings[0].isComposite)
+                        {
+                            for (int i = 0; i < otherAction.bindings.Count; i++)
+                            {
+                                if (i == bindingIndex)
+                                {
+                                    otherAction.ApplyBindingOverride(i, currentPath);
+                                }
+                                else if (otherAction.bindings[i].isPartOfComposite && otherAction.bindings[i].effectivePath.Equals(currentPath))
+                                {
+                                    otherAction.ApplyBindingOverride(i, pathBeforeBinding);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < otherAction.bindings.Count; i++)
+                            {
+                                if (otherAction.bindings[i].effectivePath.Equals(pathBeforeBinding))
+                                {
+                                    otherAction.ApplyBindingOverride(i, currentPath);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < otherAction.bindings.Count; i++)
+                        {
+                            if (otherAction.bindings[i].effectivePath.Equals(currentPath))
+                            {
+                                otherAction.ApplyBindingOverride(i, pathBeforeBinding);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
 
