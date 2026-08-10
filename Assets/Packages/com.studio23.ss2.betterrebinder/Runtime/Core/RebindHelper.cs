@@ -11,11 +11,22 @@ namespace com.studio23.ss2.betterrebinder.Core
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private PlayerInput playerInput;
         [SerializeField] private string rebindingDisplayText = "...";
+        
+        [Header("Button Name")]
+        [SerializeField] private string saveButtonName;
+        [SerializeField] private string resetButtonName;
+        [SerializeField] private long saveButtonHoldTimeMs;
+        [SerializeField] private long resetButtonHoldTimeMs;
+
+        private IVisualElementScheduledItem _holdTimer;
+
         private readonly string _rebindsPlayerPrefsKey = Rebinder.DefaultRebindsPlayerPrefsKey;
 
         private readonly Rebinder _rebinder = new Rebinder();
         private Button _waitingForRebindButton;
         private string _waitingForRebindButtonText;
+        private Button _saveButton;
+        private Button _resetButton;
 
         private void Awake()
         {
@@ -55,11 +66,15 @@ namespace com.studio23.ss2.betterrebinder.Core
                 return;
             }
 
-            document.rootVisualElement.Query<InputActionField>().ForEach(AttachToField);
+            var root = document.rootVisualElement;
+            root.Query<InputActionField>().ForEach(AttachToField);
+            BindActionButtons(root);
         }
 
         private void UnbindFromVisualTree()
         {
+            UnbindActionButtons();
+
             var document = ResolveDocument();
             if (document == null || document.rootVisualElement == null)
                 return;
@@ -80,11 +95,72 @@ namespace com.studio23.ss2.betterrebinder.Core
         {
             field.BindingClicked -= HandleBindingClicked;
             field.BindingClicked += HandleBindingClicked;
+            field.ResetClicked -= HandleResetClicked;
+            field.ResetClicked += HandleResetClicked;
         }
 
         private void DetachFromField(InputActionField field)
         {
             field.BindingClicked -= HandleBindingClicked;
+            field.ResetClicked -= HandleResetClicked;
+        }
+
+        private void BindActionButtons(VisualElement root)
+        {
+            UnbindActionButtons();
+
+            if (!string.IsNullOrWhiteSpace(saveButtonName))
+            {
+                _saveButton = root.Q<Button>(saveButtonName);
+                if (_saveButton == null)
+                    Debug.LogWarning($"RebindHelper could not find a save button named '{saveButtonName}'.");
+                else
+                {
+                    _saveButton.RegisterCallback<PointerDownEvent>(_ =>
+                    {
+                        _holdTimer = _saveButton.schedule.Execute(HandleSaveClicked);
+                        _holdTimer.ExecuteLater(saveButtonHoldTimeMs);
+                    }, TrickleDown.TrickleDown);
+                    
+                    _saveButton.RegisterCallback<PointerUpEvent>(_ => CancelPointerHold(), TrickleDown.TrickleDown);
+                    _saveButton.RegisterCallback<PointerLeaveEvent>(_ => CancelPointerHold(), TrickleDown.TrickleDown);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(resetButtonName))
+            {
+                _resetButton = root.Q<Button>(resetButtonName);
+                if (_resetButton == null)
+                    Debug.LogWarning($"RebindHelper could not find a reset button named '{resetButtonName}'.");
+                else
+                {
+                    _resetButton.RegisterCallback<PointerDownEvent>(_ =>
+                    {
+                        _holdTimer = _resetButton.schedule.Execute(HandleResetAllClicked);
+                        _holdTimer.ExecuteLater(resetButtonHoldTimeMs);
+                    }, TrickleDown.TrickleDown);
+                    
+                    _resetButton.RegisterCallback<PointerUpEvent>(_ => CancelPointerHold(), TrickleDown.TrickleDown);
+                    _resetButton.RegisterCallback<PointerLeaveEvent>(_ => CancelPointerHold(), TrickleDown.TrickleDown);
+                }
+            }
+        }
+
+        private void CancelPointerHold()
+        {
+            _holdTimer?.Pause();
+        }
+
+        private void UnbindActionButtons()
+        {
+            if (_saveButton != null)
+                _saveButton.clicked -= HandleSaveClicked;
+
+            if (_resetButton != null)
+                _resetButton.clicked -= HandleResetAllClicked;
+
+            _saveButton = null;
+            _resetButton = null;
         }
 
         private UIDocument ResolveDocument()
@@ -106,8 +182,7 @@ namespace com.studio23.ss2.betterrebinder.Core
                 Debug.LogWarning("Binding clicked without a valid InputActionReference.");
                 return;
             }
-
-            Debug.Log($"Starting rebind for action '{evt.ActionReference.name}' binding index {evt.BindingIndex}.");
+            
             SetWaitingForRebind(evt.Button);
             _rebinder.StartInteractiveRebind(
                 action,
@@ -120,6 +195,34 @@ namespace com.studio23.ss2.betterrebinder.Core
                     evt.Button?.GetFirstAncestorOfType<InputActionField>()?.Refresh();
                 },
                 ClearWaitingForRebind);
+        }
+
+        private void HandleResetClicked(ResetClickedEvent evt)
+        {
+            if (evt == null)
+                return;
+
+            var action = evt.ActionReference?.action;
+            if (action == null)
+            {
+                Debug.LogWarning("Reset clicked without a valid InputActionReference.");
+                return;
+            }
+
+            _rebinder.ResetToDefault(action);
+            RefreshFields();
+        }
+
+        private void HandleSaveClicked()
+        {
+            _rebinder.SaveBindingOverrides(playerInput, _rebindsPlayerPrefsKey);
+        }
+
+        private void HandleResetAllClicked()
+        {
+            _rebinder.ResetAll(playerInput);
+            _rebinder.SaveBindingOverrides(playerInput, _rebindsPlayerPrefsKey);
+            RefreshFields();
         }
 
         private void SetWaitingForRebind(Button button)

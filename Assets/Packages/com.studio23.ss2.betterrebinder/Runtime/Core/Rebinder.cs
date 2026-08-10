@@ -120,6 +120,25 @@ namespace Studio23.SS2.BetterRebinder.Core
             }
         }
 
+        public void ResetToDefault(InputAction action)
+        {
+            action?.RemoveAllBindingOverrides();
+        }
+
+        public void ResetAll(PlayerInput playerInput)
+        {
+            if (playerInput == null || playerInput.actions == null)
+                return;
+
+            foreach (var actionMap in playerInput.actions.actionMaps)
+            {
+                foreach (var action in actionMap.actions)
+                {
+                    action.RemoveAllBindingOverrides();
+                }
+            }
+        }
+
         public void StartInteractiveRebind(InputActionReference actionReference, string bindingId)
         {
             if (!ResolveActionAndBinding(actionReference, bindingId, out var action, out var bindingIndex))
@@ -150,13 +169,13 @@ namespace Studio23.SS2.BetterRebinder.Core
                 var firstPartIndex = bindingIndex + 1;
                 if (firstPartIndex < action.bindings.Count && action.bindings[firstPartIndex].isPartOfComposite)
                 {
-                    PerformInteractiveRebind(action, firstPartIndex, allCompositeParts: true, wasEnabled, playerInput, playerPrefsKey, onComplete, onCancel);
+                    PerformInteractiveRebind(action, firstPartIndex, allCompositeParts: true, wasEnabled, playerInput, onComplete, onCancel);
                     return;
                 }
             }
             else
             {
-                PerformInteractiveRebind(action, bindingIndex, allCompositeParts: false, wasEnabled, playerInput, playerPrefsKey, onComplete, onCancel);
+                PerformInteractiveRebind(action, bindingIndex, allCompositeParts: false, wasEnabled, playerInput, onComplete, onCancel);
                 return;
             }
 
@@ -183,7 +202,7 @@ namespace Studio23.SS2.BetterRebinder.Core
             return action.GetBindingDisplayString(bindingIndex, displayOptions);
         }
 
-        private void PerformInteractiveRebind(InputAction action, int bindingIndex, bool allCompositeParts, bool restoreEnabledState, PlayerInput playerInput, string playerPrefsKey, Action onComplete, Action onCancel)
+        private void PerformInteractiveRebind(InputAction action, int bindingIndex, bool allCompositeParts, bool restoreEnabledState, PlayerInput playerInput, Action onComplete, Action onCancel)
         {
             var rebindingOperation = action.PerformInteractiveRebinding(bindingIndex);
 
@@ -202,15 +221,14 @@ namespace Studio23.SS2.BetterRebinder.Core
                         var nextBindingIndex = bindingIndex + 1;
                         if (nextBindingIndex < action.bindings.Count && action.bindings[nextBindingIndex].isPartOfComposite)
                         {
-                            PerformInteractiveRebind(action, nextBindingIndex, allCompositeParts: true, restoreEnabledState, playerInput, playerPrefsKey, onComplete, onCancel);
+                            PerformInteractiveRebind(action, nextBindingIndex, allCompositeParts: true, restoreEnabledState, playerInput, onComplete, onCancel);
                             return;
                         }
                     }
 
                     if (restoreEnabledState)
                         action.Enable();
-
-                    SaveBindingOverrides(playerInput, playerPrefsKey);
+                    
                     onComplete?.Invoke();
                 });
 

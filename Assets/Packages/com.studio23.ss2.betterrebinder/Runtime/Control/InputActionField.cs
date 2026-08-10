@@ -18,6 +18,7 @@ namespace com.studio23.ss2.betterrebinder.Control
         private const string CompositeBindingGroupUssClassName = BindingGroupUssClassName + "--composite";
         private const string SingleBindingGroupUssClassName = BindingGroupUssClassName + "--single";
         private const string BindingButtonUssClassName = UssClassName + "__binding-button";
+        private const string ResetButtonUssClassName = UssClassName + "__reset-button";
         public const string WaitingForRebindUssClassName = "waiting";
 
         private InputActionReference _inputAction;
@@ -54,6 +55,7 @@ namespace com.studio23.ss2.betterrebinder.Control
         private Button[] _buttons;
 
         public event Action<BindingClickedEvent> BindingClicked;
+        public event Action<ResetClickedEvent> ResetClicked;
 
         public InputActionField()
         {
@@ -66,9 +68,18 @@ namespace com.studio23.ss2.betterrebinder.Control
             _bindingContainer = new VisualElement();
             _bindingContainer.AddToClassList(BindingContainerUssClassName);
             _bindingContainer.style.flexDirection = FlexDirection.Row;
+
+            var resetButton = new Button { text = "Reset" };
+            resetButton.AddToClassList(ResetButtonUssClassName);
+            resetButton.clicked += () =>
+            {
+                var evt = new ResetClickedEvent().Init(_inputAction, resetButton);
+                ResetClicked?.Invoke(evt);
+            };
             
             Add(_label);
             Add(_bindingContainer);
+            Add(resetButton);
         }
 
         public void Refresh()

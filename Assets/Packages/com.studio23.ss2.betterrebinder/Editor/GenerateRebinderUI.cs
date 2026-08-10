@@ -18,7 +18,7 @@ namespace Studio23.SS2.BetterRebinder.Editor
 		private int _controlSchemeMask = -1;
 		private string _outputPath = "Assets/RebindMenu.generated.uxml";
 
-		[MenuItem("Tools/Better Rebinder/Generate Rebind UI")]
+		[MenuItem("Studio-23/Better Rebinder/Generate Rebind UI")]
 		public static void Open()
 		{
 			var window = GetWindow<GenerateRebinderUI>();

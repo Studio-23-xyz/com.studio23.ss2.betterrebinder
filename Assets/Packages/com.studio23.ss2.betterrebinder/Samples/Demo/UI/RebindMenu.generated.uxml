@@ -22,4 +22,6 @@
             <com.studio23.ss2.betterrebinder.Control.InputActionField input-action="project://database/Assets/Packages/com.studio23.ss2.betterrebinder/Resources/PlayerControls.inputactions?fileID=-1776311359491021848&amp;guid=0fb2569b240389f4a862b7f41eb47bc3&amp;type=3#GroundMovement/MousePosition" control-schemes="KeyboardMouse"/>
         </ui:VisualElement>
     </ui:ScrollView>
+    <ui:Button text="Save" name="SaveBtn"/>
+    <ui:Button text="Reset" name="ResetBtn"/>
 </ui:UXML>

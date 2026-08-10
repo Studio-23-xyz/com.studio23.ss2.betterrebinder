@@ -16,8 +16,19 @@ InputActionField {
     border-right-width: 0;
     border-bottom-width: 0;
     border-left-width: 0;
+    align-self: center;
+    -unity-text-align: upper-right;
 }
 
 .waiting {
-    /*background-color: rgba(0.5, 0, 0, 0.5);*/
+}
+
+.input-action-field__bindings {
+    -unity-text-align: upper-left;
+    align-self: auto;
+    justify-content: flex-start;
+    -unity-font-style: normal;
+    flex-direction: column;
+    position: absolute;
+    right: 75px;
 }

@@ -82,7 +82,7 @@
                     "name": "Bat SwingShoggoth's Creation",
                     "type": "Button",
                     "id": "56b43976-de65-496b-897c-8a26c27b900b",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -660,7 +660,7 @@
                     "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";KeyboardMouse",
                     "action": "Bat SwingShoggoth's Creation",
                     "isComposite": false,
                     "isPartOfComposite": false
