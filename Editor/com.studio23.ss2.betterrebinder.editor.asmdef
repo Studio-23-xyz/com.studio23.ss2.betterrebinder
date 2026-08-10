@@ -1,0 +1,19 @@
+{
+    "name": "com.studio23.ss2.betterrebinder.editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:8ce22aa5e53c0104c91c79b1559b813a",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
