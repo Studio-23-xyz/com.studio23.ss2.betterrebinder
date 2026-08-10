@@ -1,6 +1,6 @@
 <h1 align="center">Better Rebinder</h1>
 <p align="center">
-<a href="https://openupm.com/packages/com.studio23.ss2.betterebinder/"><img src="https://img.shields.io/npm/v/com.studio23.ss2.betterebinder?label=openupm&amp;registry_uri=https://package.openupm.com" /></a>
+<a href="https://openupm.com/packages/com.studio23.ss2.betterrebinder/"><img src="https://img.shields.io/npm/v/com.studio23.ss2.betterrebinder?label=openupm&amp;registry_uri=https://package.openupm.com" /></a>
 
 </p>
 
